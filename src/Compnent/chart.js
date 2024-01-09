@@ -1,3 +1,5 @@
+// refer to https://klinecharts.com/guide/getting-started.html
+
 import { useEffect } from 'react'
 import { init, dispose } from 'klinecharts'
 
@@ -25,7 +27,7 @@ function Chart() {
           dispose('chart')
         }
       }, [])
-      
+
     return (
         <div id="chart" style={{ width: 600, height: 600 }}/>
     );
