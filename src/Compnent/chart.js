@@ -1,35 +1,86 @@
 // refer to https://klinecharts.com/guide/getting-started.html
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import React from 'react'
 import { init, dispose } from 'klinecharts'
 
+
 function Chart() {
+    const [apiData, setApiData] = useState(null);
+
+    const HISTORY_CANDLES_TS = 0;
+    const HISTORY_CANDLES_OPEN = 1;
+    const HISTORY_CANDLES_HIGH = 2;
+    const HISTORY_CANDLES_LOW = 3;
+    const HISTORY_CANDLES_CLOSE = 4;
+    const HISTORY_CANDLES_VOL = 5;
+
     useEffect(() => {
-        // 初始化图表
-        const chart = init('chart')
+        // 在 useEffect 中进行网络请求
+        const fetchData = async () => {
+          try {
+            const response = await fetch('http://127.0.0.1:8000/test/');
+            
+            if (!response.ok) {
+              throw new Error('Network request failed');
+            }
     
-        // 为图表添加数据
-        chart.applyNewData([
-          { close: 4976.16, high: 4977.99, low: 4970.12, open: 4972.89, timestamp: 1587660000000, volume: 204 },
-          { close: 4977.33, high: 4979.94, low: 4971.34, open: 4973.20, timestamp: 1587660060000, volume: 194 },
-          { close: 4977.93, high: 4977.93, low: 4974.20, open: 4976.53, timestamp: 1587660120000, volume: 197 },
-          { close: 4966.77, high: 4968.53, low: 4962.20, open: 4963.88, timestamp: 1587660180000, volume: 28 },
-          { close: 4961.56, high: 4972.61, low: 4961.28, open: 4961.28, timestamp: 1587660240000, volume: 184 },
-          { close: 4964.19, high: 4964.74, low: 4961.42, open: 4961.64, timestamp: 1587660300000, volume: 191 },
-          { close: 4968.93, high: 4972.70, low: 4964.55, open: 4966.96, timestamp: 1587660360000, volume: 105 },
-          { close: 4979.31, high: 4979.61, low: 4973.99, open: 4977.06, timestamp: 1587660420000, volume: 35 },
-          { close: 4977.02, high: 4981.66, low: 4975.14, open: 4981.66, timestamp: 1587660480000, volume: 135 },
-          { close: 4985.09, high: 4988.62, low: 4980.30, open: 4986.72, timestamp: 1587660540000, volume: 76 }
-        ])
+            const data = await response.json();
     
-        return () => {
-          // 销毁图表
-          dispose('chart')
+            // 将获取的数据设置到状态中
+            setApiData([...data["neg"], ...data["pos"]]);
+          } catch (error) {
+            console.error('Error fetching data:', error.message);
+          }
+        };
+    
+        // 调用 fetchData 函数
+        fetchData();
+      }, []);
+
+    useEffect(() => {
+        if (apiData && apiData.length !== 0) {
+
+            apiData.forEach((kLine, index) => {
+                // 初始化图表
+                const chart = init('chart' + index)
+
+                const candleSticks = kLine.map((stick) => 
+                ({
+                    timestamp: parseFloat(stick[HISTORY_CANDLES_TS]),
+                    open: parseFloat(stick[HISTORY_CANDLES_OPEN]),
+                    high: parseFloat(stick[HISTORY_CANDLES_HIGH]),
+                    low: parseFloat(stick[HISTORY_CANDLES_LOW]),
+                    close: parseFloat(stick[HISTORY_CANDLES_CLOSE]),
+                    volume: parseFloat(stick[HISTORY_CANDLES_VOL]),
+                }))
+
+                // 为图表添加数据
+                chart.applyNewData(candleSticks)
+                chart.createIndicator("MACD")
+            });
+            
+            return () => {
+                // 销毁图表
+                apiData.forEach((kLine, index) => {
+                    dispose('chart' + index)
+                });
+              }
         }
-      }, [])
+      }, [apiData])
 
     return (
-        <div id="chart" style={{ width: 600, height: 600 }}/>
+        <>
+            <div>{ "apiData" }</div>
+            {
+                apiData && apiData.length !== 0 && (apiData.map((kLine, index) => (
+                    <div key={index}>
+                        <div id={`chart${index}`} style={{ width: 400, height: 400 }}/>
+                    </div>
+                )))
+            }
+        </>
+        
     );
 }
 
